@@ -7,6 +7,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_shadows.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/constants/route_paths.dart';
+import '../../../../core/locale/app_locale.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/gp_states.dart';
 import '../../../../domain/entities/customer.dart';
@@ -70,33 +71,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final profile = _profile!;
 
+    final s = ref.watch(l10nProvider);
     final menu = [
       (
         Icons.home_work_outlined,
-        'Saved Addresses',
+        s.savedAddresses,
         RoutePaths.savedAddresses,
         null
       ),
       (
         Icons.account_balance_wallet_outlined,
-        'Wallet',
+        s.wallet,
         RoutePaths.wallet,
         Formatters.currency(profile.walletBalance)
       ),
       (
         Icons.credit_card_outlined,
-        'Payment Methods',
+        s.payments,
         RoutePaths.paymentMethods,
         null
       ),
-      (Icons.support_agent_outlined, 'Support', RoutePaths.support, null),
-      (Icons.settings_outlined, 'Settings', RoutePaths.settings, null),
-      (Icons.info_outline, 'About', RoutePaths.about, null),
+      (Icons.support_agent_outlined, s.support, RoutePaths.support, null),
+      (Icons.settings_outlined, s.settings, RoutePaths.settings, null),
+      (Icons.info_outline, s.about, RoutePaths.about, null),
     ];
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(s.profile)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -161,7 +163,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ListTile(
             leading: const Icon(Icons.logout_rounded, color: AppColors.error),
             title: Text(
-              'Logout',
+              s.logout,
               style: AppTypography.textTheme.titleMedium?.copyWith(
                 color: AppColors.error,
               ),
@@ -208,15 +210,15 @@ class _GstAndCo2State extends ConsumerState<_GstAndCo2> {
         TextField(
           controller: _gst,
           textCapitalization: TextCapitalization.characters,
-          decoration: const InputDecoration(
-            labelText: 'GSTIN (optional)',
+          decoration: InputDecoration(
+            labelText: ref.watch(l10nProvider).gstin,
             isDense: true,
           ),
           onChanged: (v) => prefs.setString('gp_customer_gstin', v.trim()),
         ),
         const SizedBox(height: 8),
         Text(
-          'CO₂ saved from EV trips: $co2 kg',
+          '${ref.watch(l10nProvider).co2}: $co2 kg',
           style: AppTypography.textTheme.bodySmall,
         ),
       ],

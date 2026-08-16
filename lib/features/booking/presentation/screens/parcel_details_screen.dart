@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/constants/route_paths.dart';
+import '../../../../core/locale/app_locale.dart';
+import '../../../../core/utils/fare_calculator.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../domain/entities/order.dart';
 import '../providers/booking_provider.dart';
@@ -28,20 +30,6 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
   String? _photoPath;
   bool _loading = false;
 
-  static const _types = [
-    (ParcelType.documents, Icons.description_outlined, 'Documents'),
-    (ParcelType.electronics, Icons.devices_other_outlined, 'Electronics'),
-    (ParcelType.clothes, Icons.checkroom_outlined, 'Clothes'),
-    (ParcelType.others, Icons.inventory_2_outlined, 'Others'),
-  ];
-
-  static const _weights = [
-    (WeightBand.upTo1, '≤ 1 KG'),
-    (WeightBand.oneTo5, '1–5 KG'),
-    (WeightBand.fiveTo10, '5–10 KG'),
-    (WeightBand.tenPlus, '10+ KG'),
-  ];
-
   @override
   void dispose() {
     _instructions.dispose();
@@ -50,10 +38,11 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
 
   Future<void> _pickPhoto() async {
     final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.camera);
-    if (file != null) {
-      setState(() => _photoPath = file.path);
-    }
+    final file = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 72,
+    );
+    if (file != null) setState(() => _photoPath = file.path);
   }
 
   Future<void> _bookNow() async {
@@ -82,12 +71,6 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
     if (!mounted) return;
     setState(() => _loading = false);
     if (started) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text('Searching for a driver. You will be notified when assigned.'),
-        ),
-      );
       context.go(RoutePaths.bookingSearching);
     } else {
       final msg =
@@ -98,362 +81,356 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
     }
   }
 
+  InputDecorationTheme get _menuDecoration {
+    return InputDecorationTheme(
+      filled: true,
+      fillColor: Colors.white,
+      isDense: true,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
+      ),
+    );
+  }
+
+  InputDecoration _fieldDecoration({
+    required String label,
+    required IconData icon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, size: 20),
+      filled: true,
+      fillColor: Colors.white,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final s = ref.watch(l10nProvider);
     final order = ref.watch(bookingProvider).order;
-    final fare = order?.fare;
+    final fare = order == null
+        ? null
+        : FareCalculator.estimate(
+            pickup: order.pickup,
+            drop: order.drop,
+            weight: _weight,
+            electric: _electric,
+            tip: _tip,
+          );
+
+    final types = <(ParcelType, IconData, String)>[
+      (ParcelType.documents, Icons.description_outlined, s.documents),
+      (ParcelType.electronics, Icons.devices_other_outlined, s.electronics),
+      (ParcelType.clothes, Icons.checkroom_outlined, s.clothes),
+      (ParcelType.food, Icons.fastfood_outlined, s.food),
+      (ParcelType.others, Icons.inventory_2_outlined, s.others),
+    ];
+    final weights = <(WeightBand, String)>[
+      (WeightBand.upTo1, '≤ 1 KG'),
+      (WeightBand.oneTo5, '1–5 KG'),
+      (WeightBand.fiveTo10, '5–10 KG'),
+      (WeightBand.tenPlus, '10+ KG'),
+    ];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
-              child: Row(
-                children: [
-                  BookingRoundButton(
-                    icon: Icons.arrow_back_rounded,
-                    onTap: () => context.pop(),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Parcel details',
-                      style: AppTypography.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ],
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF7F9FC),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: BookingRoundButton(
+            icon: Icons.arrow_back_rounded,
+            onTap: () => context.pop(),
+          ),
+        ),
+        title: Text(
+          s.parcelDetails,
+          style: AppTypography.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        children: [
+          if (order != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: BookingRouteStrip(
+                pickup: order.pickup.address,
+                drop: order.drop.address,
               ),
             ),
-            if (order != null) ...[
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFFFFFF), Color(0xFFEFF6FF)],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.12),
-                    ),
-                  ),
-                  child: BookingRouteStrip(
-                    pickup: order.pickup.address,
-                    drop: order.drop.address,
+          const SizedBox(height: 14),
+          _SectionCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  s.vehicle,
+                  style: AppTypography.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
-            ],
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
-                children: [
-                  Text(
-                    'Vehicle',
-                    style: AppTypography.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
+                const SizedBox(height: 10),
+                SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  segments: [
+                    ButtonSegment(
+                      value: true,
+                      icon: const Icon(Icons.bolt_rounded, size: 18),
+                      label: Text(s.electric),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ChoiceChip(
-                          label: const Text('Electric'),
-                          selected: _electric,
-                          onSelected: (_) => setState(() => _electric = true),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ChoiceChip(
-                          label: const Text('Diesel / Petrol'),
-                          selected: !_electric,
-                          onSelected: (_) => setState(() => _electric = false),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'What are you sending?',
-                    style: AppTypography.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
+                    ButtonSegment(
+                      value: false,
+                      icon: const Icon(Icons.local_gas_station_outlined, size: 18),
+                      label: Text(s.fuel),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  GridView.count(
-                    crossAxisCount: 3,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 1.0,
-                    children: _types.map((t) {
-                      final selected = _type == t.$1;
-                      return InkWell(
-                        onTap: () => setState(() => _type = t.$1),
-                        borderRadius: BorderRadius.circular(18),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? AppColors.primaryLight
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: selected
-                                  ? AppColors.primary
-                                  : AppColors.border,
-                              width: selected ? 1.6 : 1,
-                            ),
-                            boxShadow: selected
-                                ? [
-                                    BoxShadow(
-                                      color: AppColors.primary
-                                          .withValues(alpha: 0.12),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                t.$2,
-                                color: selected
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                t.$3,
-                                style: AppTypography.textTheme.labelMedium
-                                    ?.copyWith(
-                                  color: selected
-                                      ? AppColors.primary
-                                      : AppColors.textSecondary,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 22),
-                  Text(
-                    'Weight',
-                    style: AppTypography.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: _weights.map((w) {
-                      final selected = _weight == w.$1;
-                      return Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                            right: w != _weights.last ? 8 : 0,
-                          ),
-                          child: InkWell(
-                            onTap: () => setState(() => _weight = w.$1),
-                            borderRadius: BorderRadius.circular(14),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? AppColors.primary
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: selected
-                                      ? AppColors.primary
-                                      : AppColors.border,
-                                ),
-                              ),
-                              child: Text(
-                                w.$2,
-                                textAlign: TextAlign.center,
-                                style: AppTypography.textTheme.labelSmall
-                                    ?.copyWith(
-                                  color: selected
-                                      ? Colors.white
-                                      : AppColors.textPrimary,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 22),
-                  Text(
-                    'Instructions',
-                    style: AppTypography.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  ],
+                  selected: {_electric},
+                  onSelectionChanged: (v) =>
+                      setState(() => _electric = v.first),
+                ),
+                if (_electric) ...[
                   const SizedBox(height: 8),
-                  TextField(
-                    controller: _instructions,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      hintText: 'Handle with care, call on arrival…',
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: AppColors.border),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: AppColors.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(
-                          color: AppColors.primary,
-                          width: 1.5,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 22),
                   Text(
-                    'Photo',
-                    style: AppTypography.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
+                    s.evBenefit,
+                    style: AppTypography.textTheme.bodySmall?.copyWith(
+                      color: AppColors.success,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: _pickPhoto,
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
+                ],
+                const SizedBox(height: 16),
+                DropdownMenu<ParcelType>(
+                  key: ValueKey(_type),
+                  initialSelection: _type,
+                  expandedInsets: EdgeInsets.zero,
+                  leadingIcon: const Icon(Icons.inventory_2_outlined, size: 20),
+                  label: Text(s.sending),
+                  inputDecorationTheme: _menuDecoration,
+                  dropdownMenuEntries: [
+                    for (final t in types)
+                      DropdownMenuEntry(
+                        value: t.$1,
+                        label: t.$3,
+                        leadingIcon: Icon(t.$2, size: 20),
+                      ),
+                  ],
+                  onSelected: (v) {
+                    if (v != null) setState(() => _type = v);
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownMenu<WeightBand>(
+                  key: ValueKey(_weight),
+                  initialSelection: _weight,
+                  expandedInsets: EdgeInsets.zero,
+                  leadingIcon: const Icon(Icons.scale_outlined, size: 20),
+                  label: Text(s.weight),
+                  inputDecorationTheme: _menuDecoration,
+                  dropdownMenuEntries: [
+                    for (final w in weights)
+                      DropdownMenuEntry(value: w.$1, label: w.$2),
+                  ],
+                  onSelected: (v) {
+                    if (v != null) setState(() => _weight = v);
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SectionCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _instructions,
+                  maxLines: 2,
+                  decoration: _fieldDecoration(
+                    label: s.instructions,
+                    icon: Icons.notes_rounded,
+                  ).copyWith(hintText: s.instructionsHint, prefixIcon: null),
+                ),
+                const SizedBox(height: 10),
+                InkWell(
+                  onTap: _pickPhoto,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: _photoPath != null
+                            ? AppColors.success
+                            : AppColors.border,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _photoPath != null
+                              ? Icons.check_circle_rounded
+                              : Icons.camera_alt_outlined,
                           color: _photoPath != null
                               ? AppColors.success
-                              : AppColors.border,
+                              : AppColors.primary,
+                          size: 20,
                         ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _photoPath != null
-                                ? Icons.check_circle_rounded
-                                : Icons.camera_alt_outlined,
-                            color: _photoPath != null
-                                ? AppColors.success
-                                : AppColors.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _photoPath == null
-                                ? 'Add parcel photo'
-                                : 'Photo added',
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _photoPath == null ? s.addPhoto : s.photoAdded,
                             style: AppTypography.textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
                               color: _photoPath != null
                                   ? AppColors.success
-                                  : AppColors.primary,
-                              fontWeight: FontWeight.w700,
+                                  : AppColors.textPrimary,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: AppColors.textTertiary,
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x14000000),
-                    blurRadius: 16,
-                    offset: Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  children: [
-                    if (fare != null) ...[
-                      Row(
-                        children: [
-                          Text(
-                            'Estimated fare',
-                            style: AppTypography.textTheme.bodyMedium,
-                          ),
-                          const Spacer(),
-                          Text(
-                            Formatters.currency(fare),
-                            style: AppTypography.textTheme.titleLarge?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
+          ),
+        ],
+      ),
+      bottomNavigationBar: Material(
+        color: Colors.white,
+        elevation: 8,
+        shadowColor: const Color(0x14000000),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (fare != null)
+                  Row(
+                    children: [
+                      Text(
+                        s.estimatedFare,
+                        style: AppTypography.textTheme.bodyMedium,
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Text(
-                            'Tip (optional)',
-                            style: AppTypography.textTheme.bodyMedium,
-                          ),
-                          const Spacer(),
-                          for (final t in [0, 10, 20, 50])
-                            Padding(
-                              padding: const EdgeInsets.only(left: 6),
-                              child: ChoiceChip(
-                                label: Text(t == 0 ? 'No' : '₹$t'),
-                                selected: _tip == t,
-                                onSelected: (_) => setState(() => _tip = t.toDouble()),
-                              ),
-                            ),
-                        ],
+                      const Spacer(),
+                      Text(
+                        Formatters.currency(fare),
+                        style: AppTypography.textTheme.titleLarge?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                      const SizedBox(height: 12),
                     ],
-                    BookingPrimaryButton(
-                      label: 'Book now',
-                      isLoading: _loading,
-                      onPressed: _bookNow,
+                  ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text(
+                      s.tipOptional,
+                      style: AppTypography.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final t in [0, 10, 20, 50])
+                            ChoiceChip(
+                              label: Text(t == 0 ? s.noTip : '₹$t'),
+                              selected: _tip == t,
+                              visualDensity: VisualDensity.compact,
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              onSelected: (_) =>
+                                  setState(() => _tip = t.toDouble()),
+                            ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 10),
+                BookingPrimaryButton(
+                  label: s.bookNow,
+                  isLoading: _loading,
+                  onPressed: _bookNow,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: child,
     );
   }
 }

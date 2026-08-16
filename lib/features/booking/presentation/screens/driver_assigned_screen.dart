@@ -152,7 +152,7 @@ class _DriverAssignedScreenState extends ConsumerState<DriverAssignedScreen>
     final linePoints = _route.length >= 2 ? _route : [pickup, drop];
     final fitPoints = [
       ...linePoints,
-      if (driverPos != null) driverPos,
+      ?driverPos,
     ];
 
     return Scaffold(

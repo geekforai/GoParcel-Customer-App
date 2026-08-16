@@ -472,6 +472,8 @@ class ApiOrderRepository implements OrderRepository {
       );
       // #endregion
 
+      await _cancelBlockingPickups();
+
       final shipment = await _api.post(
         '${ApiConstants.shipments}/create',
         body: {

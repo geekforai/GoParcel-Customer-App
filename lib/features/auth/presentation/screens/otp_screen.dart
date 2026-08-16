@@ -6,6 +6,7 @@ import '../../../../app/di.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/constants/route_paths.dart';
+import '../../../../core/locale/app_locale.dart';
 import '../../../../core/widgets/gp_inputs.dart';
 import '../../../../core/widgets/gp_primary_button.dart';
 import '../providers/auth_provider.dart';
@@ -44,13 +45,14 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     final target = isEmail
         ? (auth.email.isEmpty ? 'your email' : auth.email)
         : (auth.phone.isEmpty ? 'your number' : '+91 ${auth.phone}');
+    final s = ref.watch(l10nProvider);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: const Text('Verify OTP'),
+        title: Text(s.verifyOtp),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
@@ -65,12 +67,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Enter OTP', style: AppTypography.textTheme.headlineLarge),
+                    Text(s.enterOtp, style: AppTypography.textTheme.headlineLarge),
                     const SizedBox(height: 8),
                     Text(
                       isEmail
                           ? 'We sent a $otpLength-digit code to $target'
-                          : 'SMS is not enabled yet. Use OTP 1234 for $target',
+                          : '${s.otpHint} ($target)',
                       style: AppTypography.textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 28),
@@ -100,7 +102,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
               child: GpPrimaryButton(
-                label: 'Verify & Continue',
+                label: s.verifyContinue,
                 isLoading: isLoading,
                 isEnabled: _otp.length == otpLength,
                 onPressed: _verify,

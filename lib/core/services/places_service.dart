@@ -54,7 +54,7 @@ class PlacesService {
       'key': MapsConfig.apiKey,
       'components': 'country:in',
       'language': 'en',
-      if (sessionToken != null) 'sessiontoken': sessionToken,
+      'sessiontoken': ?sessionToken,
     });
 
     final res = await _client.get(uri).timeout(const Duration(seconds: 8));
@@ -86,7 +86,7 @@ class PlacesService {
       'fields': 'place_id,formatted_address,geometry,name',
       'key': MapsConfig.apiKey,
       'language': 'en',
-      if (sessionToken != null) 'sessiontoken': sessionToken,
+      'sessiontoken': ?sessionToken,
     });
     final res = await _client.get(uri).timeout(const Duration(seconds: 8));
     if (res.statusCode != 200) return null;

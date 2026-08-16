@@ -12,10 +12,11 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(appLocaleProvider);
+    final s = ref.watch(l10nProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(tr(ref, 'Settings', 'सेटिंग्स')),
+        title: Text(s.settings),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
@@ -24,8 +25,8 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         children: [
           ListTile(
-            title: Text(tr(ref, 'Language', 'भाषा')),
-            subtitle: Text(locale == 'hi' ? 'हिन्दी' : 'English'),
+            title: Text(s.language),
+            subtitle: Text(locale == 'hi' ? s.hindiLabel : s.english),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () async {
               final next = await showModalBottomSheet<String>(
@@ -35,11 +36,16 @@ class SettingsScreen extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ListTile(
-                        title: const Text('English'),
+                        title: Text(s.chooseLanguage),
+                      ),
+                      ListTile(
+                        title: Text(s.english),
+                        trailing: locale == 'en' ? const Icon(Icons.check) : null,
                         onTap: () => Navigator.pop(ctx, 'en'),
                       ),
                       ListTile(
-                        title: const Text('हिन्दी'),
+                        title: Text(s.hindiLabel),
+                        trailing: locale == 'hi' ? const Icon(Icons.check) : null,
                         onTap: () => Navigator.pop(ctx, 'hi'),
                       ),
                     ],
@@ -52,51 +58,63 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
           ListTile(
-            title: const Text('Privacy Policy'),
+            title: Text(s.privacy),
             onTap: () => context.push(
               RoutePaths.legal,
               extra: (
-                'Privacy Policy',
-                'GoParcel collects only what is needed to complete deliveries. Names and phone numbers of the other party are masked in-app. Maps, SMS, and payments stay mocked until production keys are configured.',
+                s.privacy,
+                s.t(
+                  'GoParcel collects only what is needed to complete deliveries. Names and phone numbers of the other party are masked in-app.',
+                  'गोपरसल केवल डिलीवरी के लिए ज़रूरी जानकारी लेता है। दूसरे पक्ष का नाम और फ़ोन ऐप में छिपा रहता है।',
+                ),
               ),
             ),
           ),
           ListTile(
-            title: const Text('Terms & Conditions'),
+            title: Text(s.terms),
             onTap: () => context.push(
               RoutePaths.legal,
               extra: (
-                'Terms & Conditions',
-                'By using GoParcel you agree to city-limited deliveries, fare estimates based on distance, and cancellation with a reason before pickup.',
+                s.terms,
+                s.t(
+                  'By using GoParcel you agree to city-limited deliveries and fare estimates based on distance.',
+                  'गोपरसल इस्तेमाल करके आप शहर-सीमित डिलीवरी और दूरी के अनुसार किराए से सहमत हैं।',
+                ),
               ),
             ),
           ),
           ListTile(
-            title: const Text('FAQs'),
+            title: Text(s.faqs),
             onTap: () => context.push(
               RoutePaths.legal,
               extra: (
-                'FAQs',
-                'Login uses phone OTP 1234 while SMS is not configured. Search runs for 2 minutes. Pickup/drop OTPs appear after a driver is assigned.',
+                s.faqs,
+                s.t(
+                  'Login uses phone OTP 1234 while SMS is not configured. Search runs for 2 minutes.',
+                  'SMS बंद होने तक लॉगिन OTP 1234 है। ड्राइवर सर्च 2 मिनट चलती है।',
+                ),
               ),
             ),
           ),
           ListTile(
-            title: const Text('Refund Policy'),
+            title: Text(s.refund),
             onTap: () => context.push(
               RoutePaths.legal,
               extra: (
-                'Refund Policy',
-                'Cancelled trips before pickup are not charged. Payment gateway remains in sandbox until credentials are provided.',
+                s.refund,
+                s.t(
+                  'Cancelled trips before pickup are not charged.',
+                  'पिकअप से पहले रद्द ट्रिप पर चार्ज नहीं लगता।',
+                ),
               ),
             ),
           ),
           ListTile(
-            title: const Text('Help / Contact'),
+            title: Text(s.help),
             onTap: () => context.push(RoutePaths.support),
           ),
           ListTile(
-            title: const Text('About'),
+            title: Text(s.about),
             onTap: () => context.push(RoutePaths.about),
           ),
         ],

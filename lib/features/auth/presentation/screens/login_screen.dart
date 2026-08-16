@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/constants/route_paths.dart';
+import '../../../../core/locale/app_locale.dart';
 import '../../../../core/widgets/gp_brand_logo.dart';
 import '../../../../core/widgets/gp_inputs.dart';
 import '../../../../core/widgets/gp_primary_button.dart';
@@ -40,6 +41,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final isLoading = auth.status == AuthStatus.loading;
+    final s = ref.watch(l10nProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -53,12 +55,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const GpBrandLogo(height: 28),
               const SizedBox(height: 36),
               Text(
-                'Welcome to GoParcel',
+                s.welcome,
                 style: AppTypography.textTheme.displayMedium,
               ),
               const SizedBox(height: 6),
               Text(
-                'Jaipur deliveries — login with your mobile number.',
+                s.loginSubtitle,
                 style: AppTypography.textTheme.bodyLarge?.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -75,14 +77,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 14),
               TextField(
                 controller: _referralController,
-                decoration: const InputDecoration(
-                  labelText: 'Referral code (optional)',
-                  hintText: 'Enter referral code',
+                decoration: InputDecoration(
+                  labelText: s.referralOptional,
+                  hintText: s.referralOptional,
                 ),
               ),
               const SizedBox(height: 24),
               GpPrimaryButton(
-                label: 'Continue',
+                label: s.continueLabel,
                 isLoading: isLoading,
                 onPressed: _sendOtp,
               ),
@@ -92,9 +94,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   TextSpan(
                     style: AppTypography.textTheme.bodySmall,
                     children: [
-                      const TextSpan(text: 'By continuing, you agree to our '),
+                      const TextSpan(text: ''),
+                      TextSpan(text: s.termsPrefix),
                       TextSpan(
-                        text: 'Terms & Conditions',
+                        text: s.terms,
                         style: AppTypography.textTheme.bodySmall?.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
@@ -103,9 +106,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ..onTap = () =>
                               context.push(RoutePaths.settings),
                       ),
-                      const TextSpan(text: ' and '),
+                      TextSpan(text: s.andWord),
                       TextSpan(
-                        text: 'Privacy Policy',
+                        text: s.privacy,
                         style: AppTypography.textTheme.bodySmall?.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,

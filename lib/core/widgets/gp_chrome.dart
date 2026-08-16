@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_shadows.dart';
 import '../../app/theme/app_typography.dart';
+import '../locale/app_locale.dart';
 
-class GpBottomNav extends StatelessWidget {
+class GpBottomNav extends ConsumerWidget {
   const GpBottomNav({
     super.key,
     required this.currentIndex,
@@ -14,15 +16,15 @@ class GpBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  static const _items = [
-    (Icons.home_rounded, Icons.home_outlined, 'Home'),
-    (Icons.receipt_long_rounded, Icons.receipt_long_outlined, 'Orders'),
-    (Icons.notifications_rounded, Icons.notifications_outlined, 'Alerts'),
-    (Icons.person_rounded, Icons.person_outline_rounded, 'Profile'),
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(l10nProvider);
+    final items = [
+      (Icons.home_rounded, Icons.home_outlined, s.home),
+      (Icons.receipt_long_rounded, Icons.receipt_long_outlined, s.orders),
+      (Icons.notifications_rounded, Icons.notifications_outlined, s.alerts),
+      (Icons.person_rounded, Icons.person_outline_rounded, s.profile),
+    ];
     return Container(
       decoration: BoxDecoration(color: Colors.white, boxShadow: AppShadows.bottomNav),
       child: SafeArea(
@@ -30,8 +32,8 @@ class GpBottomNav extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(
-            children: List.generate(_items.length, (i) {
-              final item = _items[i];
+            children: List.generate(items.length, (i) {
+              final item = items[i];
               final selected = currentIndex == i;
               return Expanded(
                 child: InkWell(

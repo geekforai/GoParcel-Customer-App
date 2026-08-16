@@ -194,7 +194,7 @@ class _GpPlacesFieldState extends State<GpPlacesField> {
               shrinkWrap: true,
               padding: EdgeInsets.zero,
               itemCount: _suggestions.length.clamp(0, 5),
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (_, _) =>
                   const Divider(height: 1, color: AppColors.border),
               itemBuilder: (context, i) {
                 final s = _suggestions[i];
