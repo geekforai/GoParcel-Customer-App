@@ -21,6 +21,7 @@ import '../features/notifications/presentation/screens/notifications_screen.dart
 import '../features/orders/presentation/screens/order_details_screen.dart';
 import '../features/orders/presentation/screens/orders_screen.dart';
 import '../features/profile/presentation/screens/about_screen.dart';
+import '../features/profile/presentation/screens/legal_page_screen.dart';
 import '../features/profile/presentation/screens/addresses_screen.dart';
 import '../features/profile/presentation/screens/payments_screen.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
@@ -179,6 +180,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: RoutePaths.about,
         builder: (context, state) => const AboutScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RoutePaths.legal,
+        builder: (context, state) {
+          final extra = state.extra;
+          var title = 'Legal';
+          var body = '';
+          if (extra is (String, String)) {
+            title = extra.$1;
+            body = extra.$2;
+          }
+          return LegalPageScreen(title: title, body: body);
+        },
       ),
     ],
   );

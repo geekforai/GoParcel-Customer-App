@@ -14,6 +14,8 @@ abstract class OrderRepository {
     required WeightBand weightBand,
     required String instructions,
     String? photoPath,
+    bool electric = true,
+    double tip = 0,
   });
   Future<Result<CustomerOrder>> startDriverSearch(String orderId);
   Future<Result<CustomerOrder>> assignDriver(String orderId);

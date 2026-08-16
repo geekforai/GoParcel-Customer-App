@@ -22,6 +22,8 @@ class ParcelDetailsScreen extends ConsumerStatefulWidget {
 class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
   ParcelType _type = ParcelType.documents;
   WeightBand _weight = WeightBand.oneTo5;
+  bool _electric = true;
+  double _tip = 0;
   final _instructions = TextEditingController();
   String? _photoPath;
   bool _loading = false;
@@ -29,7 +31,6 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
   static const _types = [
     (ParcelType.documents, Icons.description_outlined, 'Documents'),
     (ParcelType.electronics, Icons.devices_other_outlined, 'Electronics'),
-    (ParcelType.food, Icons.restaurant_outlined, 'Food'),
     (ParcelType.clothes, Icons.checkroom_outlined, 'Clothes'),
     (ParcelType.others, Icons.inventory_2_outlined, 'Others'),
   ];
@@ -63,6 +64,8 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
       weight: _weight,
       instructions: _instructions.text.trim(),
       photoPath: _photoPath,
+      electric: _electric,
+      tip: _tip,
     );
     if (!saved) {
       if (mounted) {
@@ -79,6 +82,12 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
     if (!mounted) return;
     setState(() => _loading = false);
     if (started) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Searching for a driver. You will be notified when assigned.'),
+        ),
+      );
       context.go(RoutePaths.bookingSearching);
     } else {
       final msg =
@@ -146,6 +155,33 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
                 children: [
+                  Text(
+                    'Vehicle',
+                    style: AppTypography.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('Electric'),
+                          selected: _electric,
+                          onSelected: (_) => setState(() => _electric = true),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('Diesel / Petrol'),
+                          selected: !_electric,
+                          onSelected: (_) => setState(() => _electric = false),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
                   Text(
                     'What are you sending?',
                     style: AppTypography.textTheme.titleLarge?.copyWith(
@@ -383,6 +419,25 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
                               fontWeight: FontWeight.w800,
                             ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text(
+                            'Tip (optional)',
+                            style: AppTypography.textTheme.bodyMedium,
+                          ),
+                          const Spacer(),
+                          for (final t in [0, 10, 20, 50])
+                            Padding(
+                              padding: const EdgeInsets.only(left: 6),
+                              child: ChoiceChip(
+                                label: Text(t == 0 ? 'No' : '₹$t'),
+                                selected: _tip == t,
+                                onSelected: (_) => setState(() => _tip = t.toDouble()),
+                              ),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 12),

@@ -90,6 +90,8 @@ class BookingNotifier extends Notifier<BookingState> {
     required WeightBand weight,
     required String instructions,
     String? photoPath,
+    bool electric = true,
+    double tip = 0,
   }) async {
     final order = state.order;
     if (order == null) return false;
@@ -100,6 +102,8 @@ class BookingNotifier extends Notifier<BookingState> {
           weightBand: weight,
           instructions: instructions,
           photoPath: photoPath,
+          electric: electric,
+          tip: tip,
         );
     return _handle(result);
   }

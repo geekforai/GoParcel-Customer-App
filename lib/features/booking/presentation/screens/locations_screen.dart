@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../../../../app/di.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/route_paths.dart';
 import '../../../../core/services/directions_service.dart';
 import '../../../../core/services/location_service.dart';
@@ -33,6 +35,12 @@ class _LocationsScreenState extends ConsumerState<LocationsScreen> {
   final _sheetKey = GlobalKey();
   final _pickupCtrl = TextEditingController();
   final _dropCtrl = TextEditingController();
+  final _pickupName = TextEditingController();
+  final _pickupPhone = TextEditingController();
+  final _dropName = TextEditingController();
+  final _dropPhone = TextEditingController();
+  String _pickupType = 'home';
+  String _dropType = 'home';
 
   LatLng _center = LocationService.defaultNoida;
   LatLng? _pickupPoint;
@@ -57,6 +65,10 @@ class _LocationsScreenState extends ConsumerState<LocationsScreen> {
     _measureTimer?.cancel();
     _pickupCtrl.dispose();
     _dropCtrl.dispose();
+    _pickupName.dispose();
+    _pickupPhone.dispose();
+    _dropName.dispose();
+    _dropPhone.dispose();
     super.dispose();
   }
 
@@ -164,23 +176,41 @@ class _LocationsScreenState extends ConsumerState<LocationsScreen> {
       return;
     }
 
+    if (_pickupName.text.trim().isEmpty ||
+        _dropName.text.trim().isEmpty ||
+        _pickupPhone.text.trim().length != 10 ||
+        _dropPhone.text.trim().length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Enter contact name and 10-digit phone for pickup and drop'),
+        ),
+      );
+      return;
+    }
     setState(() => _loading = true);
     final ok = await ref.read(bookingProvider.notifier).setLocations(
           pickup: PlaceLocation(
-            label: 'Pickup',
+            label: _pickupType,
             address: pickupAddr,
             point: GeoPoint(
               lat: _pickupPoint!.latitude,
               lng: _pickupPoint!.longitude,
             ),
+            contactName: _pickupName.text.trim(),
+            contactPhone: _pickupPhone.text.trim(),
+            addressType: _pickupType,
           ),
           drop: PlaceLocation(
-            label: 'Delivery',
+            label: _dropType,
             address: dropAddr,
             point: GeoPoint(
               lat: _dropPoint!.latitude,
               lng: _dropPoint!.longitude,
             ),
+            contactName: _dropName.text.trim(),
+            contactPhone: _dropPhone.text.trim(),
+            addressType: _dropType,
           ),
         );
     if (!mounted) return;
@@ -240,7 +270,7 @@ class _LocationsScreenState extends ConsumerState<LocationsScreen> {
   @override
   Widget build(BuildContext context) {
     final keyboard = MediaQuery.viewInsetsOf(context).bottom;
-    final maxSheet = MediaQuery.sizeOf(context).height * 0.62;
+    final maxSheet = MediaQuery.sizeOf(context).height * 0.78;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scheduleMeasure();
       _ensureRoute();
@@ -383,6 +413,36 @@ class _LocationsScreenState extends ConsumerState<LocationsScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
+                        _ContactBlock(
+                          title: 'Pickup contact',
+                          name: _pickupName,
+                          phone: _pickupPhone,
+                          type: _pickupType,
+                          onType: (v) => setState(() => _pickupType = v),
+                          onUseMyNumber: () {
+                            final my = ref
+                                    .read(sharedPreferencesProvider)
+                                    .getString(AppConstants.phoneKey) ??
+                                '';
+                            setState(() => _pickupPhone.text = my);
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        _ContactBlock(
+                          title: 'Drop contact',
+                          name: _dropName,
+                          phone: _dropPhone,
+                          type: _dropType,
+                          onType: (v) => setState(() => _dropType = v),
+                          onUseMyNumber: () {
+                            final my = ref
+                                    .read(sharedPreferencesProvider)
+                                    .getString(AppConstants.phoneKey) ??
+                                '';
+                            setState(() => _dropPhone.text = my);
+                          },
+                        ),
+                        const SizedBox(height: 12),
                         BookingPrimaryButton(
                           label: 'Continue',
                           isLoading: _loading,
@@ -397,6 +457,71 @@ class _LocationsScreenState extends ConsumerState<LocationsScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ContactBlock extends StatelessWidget {
+  const _ContactBlock({
+    required this.title,
+    required this.name,
+    required this.phone,
+    required this.type,
+    required this.onType,
+    required this.onUseMyNumber,
+  });
+
+  final String title;
+  final TextEditingController name;
+  final TextEditingController phone;
+  final String type;
+  final ValueChanged<String> onType;
+  final VoidCallback onUseMyNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: AppTypography.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        TextField(
+          controller: name,
+          decoration: const InputDecoration(
+            labelText: 'Receiver name',
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: phone,
+          keyboardType: TextInputType.phone,
+          maxLength: 10,
+          decoration: const InputDecoration(
+            labelText: 'Phone',
+            isDense: true,
+            counterText: '',
+          ),
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: onUseMyNumber,
+            child: const Text('Use my number'),
+          ),
+        ),
+        Wrap(
+          spacing: 8,
+          children: [
+            for (final t in ['home', 'office', 'other'])
+              ChoiceChip(
+                label: Text(t[0].toUpperCase() + t.substring(1)),
+                selected: type == t,
+                onSelected: (_) => onType(t),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

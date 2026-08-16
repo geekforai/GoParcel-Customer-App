@@ -267,7 +267,7 @@ class _DriverAssignedScreenState extends ConsumerState<DriverAssignedScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                driver?.name ?? 'Driver',
+                                driver?.displayName ?? 'Driver',
                                 style: AppTypography.textTheme.titleLarge
                                     ?.copyWith(fontWeight: FontWeight.w700),
                               ),
@@ -280,8 +280,8 @@ class _DriverAssignedScreenState extends ConsumerState<DriverAssignedScreen>
                               ),
                               Text(
                                 (driver?.phone.isNotEmpty == true)
-                                    ? driver!.phone
-                                    : 'Phone updating…',
+                                    ? driver!.displayPhone
+                                    : 'Phone hidden',
                                 style: AppTypography.textTheme.titleSmall
                                     ?.copyWith(
                                   color: AppColors.primary,

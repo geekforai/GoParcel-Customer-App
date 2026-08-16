@@ -210,7 +210,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Sector 62, Noida',
+                        'Sector 62, Jaipur',
                         style: AppTypography.textTheme.titleMedium,
                       ),
                     ),

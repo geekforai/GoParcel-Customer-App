@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../core/utils/privacy_mask.dart';
+
 enum ParcelType { documents, electronics, food, clothes, others }
 
 enum WeightBand { upTo1, oneTo5, fiveTo10, tenPlus }
@@ -30,15 +32,22 @@ class PlaceLocation extends Equatable {
   const PlaceLocation({
     required this.label,
     required this.address,
-    this.point = const GeoPoint(lat: 28.62, lng: 77.36),
+    this.point = const GeoPoint(lat: 26.9124, lng: 75.7873),
+    this.contactName = '',
+    this.contactPhone = '',
+    this.addressType = 'home',
   });
 
   final String label;
   final String address;
   final GeoPoint point;
+  final String contactName;
+  final String contactPhone;
+  final String addressType;
 
   @override
-  List<Object?> get props => [label, address, point];
+  List<Object?> get props =>
+      [label, address, point, contactName, contactPhone, addressType];
 }
 
 class AssignedDriver extends Equatable {
@@ -65,6 +74,9 @@ class AssignedDriver extends Equatable {
   final double? lng;
 
   bool get hasLocation => lat != null && lng != null;
+
+  String get displayName => PrivacyMask.name(name);
+  String get displayPhone => PrivacyMask.phone(phone);
 
   AssignedDriver copyWith({
     String? name,
@@ -114,6 +126,8 @@ class CustomerOrder extends Equatable {
     this.pickupOtp = '',
     this.deliveryOtp = '',
     this.pickupId,
+    this.electric = true,
+    this.tip = 0,
   });
 
   final String id;
@@ -134,6 +148,8 @@ class CustomerOrder extends Equatable {
   final String deliveryOtp;
   /// Backend pickup document id / pickupId — used to cancel from Orders.
   final String? pickupId;
+  final bool electric;
+  final double tip;
 
   /// True while a trip is not finished/cancelled — blocks a second booking.
   bool get isBlockingNewBooking => switch (status) {
@@ -203,6 +219,8 @@ class CustomerOrder extends Equatable {
     String? pickupOtp,
     String? deliveryOtp,
     String? pickupId,
+    bool? electric,
+    double? tip,
   }) {
     return CustomerOrder(
       id: id,
@@ -222,6 +240,8 @@ class CustomerOrder extends Equatable {
       pickupOtp: pickupOtp ?? this.pickupOtp,
       deliveryOtp: deliveryOtp ?? this.deliveryOtp,
       pickupId: pickupId ?? this.pickupId,
+      electric: electric ?? this.electric,
+      tip: tip ?? this.tip,
     );
   }
 
@@ -244,6 +264,8 @@ class CustomerOrder extends Equatable {
         pickupOtp,
         deliveryOtp,
         pickupId,
+        electric,
+        tip,
       ];
 }
 

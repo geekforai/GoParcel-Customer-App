@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../core/constants/api_constants.dart';
 import '../../core/debug/agent_log.dart';
 import '../../core/errors/result.dart';
+import '../../core/utils/fare_calculator.dart';
 import '../../domain/entities/order.dart';
 import '../../domain/repositories/order_repository.dart';
 import '../datasources/api_client.dart';
@@ -63,16 +64,17 @@ class ApiOrderRepository implements OrderRepository {
   }
 
   Map<String, dynamic> _partyFromPlace(PlaceLocation place, String phone, String name) {
-    // Address is free-text in UI; fill required shipment fields with sensible defaults.
     final address = place.address.trim().isEmpty ? place.label : place.address;
+    final partyName = place.contactName.trim().isEmpty ? name : place.contactName;
+    final partyPhone = place.contactPhone.trim().isEmpty ? phone : place.contactPhone;
     return {
-      'name': name,
-      'phone': phone,
-      'line1': address.length >= 3 ? address : '$address, Noida',
+      'name': partyName,
+      'phone': partyPhone,
+      'line1': address.length >= 3 ? address : '$address, Jaipur',
       'line2': '',
-      'city': 'Noida',
-      'state': 'Uttar Pradesh',
-      'pincode': '201301',
+      'city': 'Jaipur',
+      'state': 'Rajasthan',
+      'pincode': '302001',
       'country': 'IN',
     };
   }
@@ -420,6 +422,8 @@ class ApiOrderRepository implements OrderRepository {
     required WeightBand weightBand,
     required String instructions,
     String? photoPath,
+    bool electric = true,
+    double tip = 0,
   }) async {
     if (_active == null) return const FailureResult('No active booking');
     _active = _active!.copyWith(
@@ -427,7 +431,15 @@ class ApiOrderRepository implements OrderRepository {
       weightBand: weightBand,
       instructions: instructions,
       photoPath: photoPath,
-      fare: _estimateFare(weightBand),
+      electric: electric,
+      tip: tip,
+      fare: FareCalculator.estimate(
+        pickup: _active!.pickup,
+        drop: _active!.drop,
+        weight: weightBand,
+        electric: electric,
+        tip: tip,
+      ),
     );
     _emit();
     return Success(_active!);

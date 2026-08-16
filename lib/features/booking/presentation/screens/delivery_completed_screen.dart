@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/di.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/constants/route_paths.dart';
@@ -39,8 +40,17 @@ class _DeliveryCompletedScreenState
   }
 
   Future<void> _bookAnother() async {
-    if (_rating > 0) {
-      await ref.read(bookingProvider.notifier).rate(_rating);
+    if (_rating == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please rate your driver')),
+      );
+      return;
+    }
+    await ref.read(bookingProvider.notifier).rate(_rating);
+    final order = ref.read(bookingProvider).order;
+    if (order?.electric == true) {
+      final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.setInt('gp_ev_trips', (prefs.getInt('gp_ev_trips') ?? 0) + 1);
     }
     await ref.read(bookingProvider.notifier).clearActive();
     if (mounted) context.go(RoutePaths.home);

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/errors/result.dart';
+import '../../core/utils/fare_calculator.dart';
 import '../../domain/entities/order.dart';
 import '../../domain/repositories/order_repository.dart';
 
@@ -66,13 +67,6 @@ class MockOrderRepository implements OrderRepository {
 
   void _emit() => _controller.add(_active);
 
-  double _estimateFare(WeightBand band) => switch (band) {
-        WeightBand.upTo1 => 99,
-        WeightBand.oneTo5 => 148,
-        WeightBand.fiveTo10 => 199,
-        WeightBand.tenPlus => 279,
-      };
-
   @override
   Stream<CustomerOrder?> watchActiveOrder() {
     Future.microtask(_emit);
@@ -112,7 +106,12 @@ class MockOrderRepository implements OrderRepository {
       drop: drop,
       parcelType: ParcelType.documents,
       weightBand: WeightBand.oneTo5,
-      fare: 148,
+      fare: FareCalculator.estimate(
+        pickup: pickup,
+        drop: drop,
+        weight: WeightBand.oneTo5,
+        electric: true,
+      ),
       status: OrderStatus.draft,
       createdAt: DateTime.now(),
     );
@@ -127,6 +126,8 @@ class MockOrderRepository implements OrderRepository {
     required WeightBand weightBand,
     required String instructions,
     String? photoPath,
+    bool electric = true,
+    double tip = 0,
   }) async {
     await Future<void>.delayed(AppConstants.mockNetworkDelay);
     if (_active == null) return const FailureResult('No active booking');
@@ -135,7 +136,15 @@ class MockOrderRepository implements OrderRepository {
       weightBand: weightBand,
       instructions: instructions,
       photoPath: photoPath,
-      fare: _estimateFare(weightBand),
+      electric: electric,
+      tip: tip,
+      fare: FareCalculator.estimate(
+        pickup: _active!.pickup,
+        drop: _active!.drop,
+        weight: weightBand,
+        electric: electric,
+        tip: tip,
+      ),
     );
     _emit();
     return Success(_active!);

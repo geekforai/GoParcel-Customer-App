@@ -119,9 +119,9 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
           if (order.instructions.isNotEmpty)
             _InfoRow(label: 'Instructions', value: order.instructions),
           if (order.driver != null) ...[
-            _InfoRow(label: 'Driver', value: order.driver!.name),
+            _InfoRow(label: 'Driver', value: order.driver!.displayName),
             if (order.driver!.phone.isNotEmpty)
-              _InfoRow(label: 'Phone', value: order.driver!.phone),
+              _InfoRow(label: 'Phone', value: order.driver!.displayPhone),
           ],
           if (order.pickupOtp.isNotEmpty)
             _InfoRow(label: 'Pickup OTP', value: order.pickupOtp),

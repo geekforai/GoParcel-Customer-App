@@ -121,6 +121,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   '+91 ${profile.phone}',
                   style: AppTypography.textTheme.bodyMedium,
                 ),
+                const SizedBox(height: 8),
+                _GstAndCo2(phone: profile.phone),
               ],
             ),
           ),
@@ -168,6 +170,56 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _GstAndCo2 extends ConsumerStatefulWidget {
+  const _GstAndCo2({required this.phone});
+  final String phone;
+
+  @override
+  ConsumerState<_GstAndCo2> createState() => _GstAndCo2State();
+}
+
+class _GstAndCo2State extends ConsumerState<_GstAndCo2> {
+  late final TextEditingController _gst;
+
+  @override
+  void initState() {
+    super.initState();
+    final prefs = ref.read(sharedPreferencesProvider);
+    _gst = TextEditingController(text: prefs.getString('gp_customer_gstin') ?? '');
+  }
+
+  @override
+  void dispose() {
+    _gst.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final evTrips = prefs.getInt('gp_ev_trips') ?? 0;
+    final co2 = (evTrips * 0.21).toStringAsFixed(2);
+    return Column(
+      children: [
+        TextField(
+          controller: _gst,
+          textCapitalization: TextCapitalization.characters,
+          decoration: const InputDecoration(
+            labelText: 'GSTIN (optional)',
+            isDense: true,
+          ),
+          onChanged: (v) => prefs.setString('gp_customer_gstin', v.trim()),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'CO₂ saved from EV trips: $co2 kg',
+          style: AppTypography.textTheme.bodySmall,
+        ),
+      ],
     );
   }
 }

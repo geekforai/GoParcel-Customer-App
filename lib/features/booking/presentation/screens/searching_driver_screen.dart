@@ -14,7 +14,6 @@ import '../../../../core/services/directions_service.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/gp_google_map.dart';
 import '../providers/booking_provider.dart';
-import '../widgets/booking_ui.dart';
 
 class SearchingDriverScreen extends ConsumerStatefulWidget {
   const SearchingDriverScreen({super.key});
@@ -132,9 +131,10 @@ class _SearchingDriverScreenState extends ConsumerState<SearchingDriverScreen>
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (ctx) => _CancelSheet(
         onKeep: () => Navigator.pop(ctx, false),
-        onCancel: () => Navigator.pop(ctx, true),
+        onCancel: (reason) => Navigator.pop(ctx, true),
       ),
     );
     if (confirmed != true || !mounted) return;
@@ -177,8 +177,8 @@ class _SearchingDriverScreenState extends ConsumerState<SearchingDriverScreen>
   Widget build(BuildContext context) {
     final order = ref.watch(bookingProvider).order;
     final pickup = LatLng(
-      order?.pickup.point.lat ?? 28.62,
-      order?.pickup.point.lng ?? 77.36,
+      order?.pickup.point.lat ?? 26.9124,
+      order?.pickup.point.lng ?? 75.7873,
     );
     final drop = LatLng(
       order?.drop.point.lat ?? 28.57,
@@ -407,22 +407,9 @@ class _SearchSheet extends StatelessWidget {
                                     Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Text(
-                                          '$seconds',
-                                          style: AppTypography
-                                              .textTheme.headlineMedium
-                                              ?.copyWith(
-                                            fontWeight: FontWeight.w800,
-                                            height: 1,
-                                          ),
-                                        ),
-                                        Text(
-                                          'sec',
-                                          style: AppTypography
-                                              .textTheme.labelSmall
-                                              ?.copyWith(
-                                            color: AppColors.textTertiary,
-                                          ),
+                                        Icon(
+                                          Icons.search_rounded,
+                                          color: AppColors.primary,
                                         ),
                                       ],
                                     ),
@@ -511,11 +498,6 @@ class _SearchSheet extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 14),
-                BookingOtpShareCards(
-                  pickupOtp: pickupOtp,
-                  deliveryOtp: deliveryOtp,
-                ),
-                const SizedBox(height: 16),
                 if (!timedOut)
                   TextButton(
                     onPressed: cancelling ? null : onCancel,
@@ -740,10 +722,24 @@ class _GlassIconButton extends StatelessWidget {
   }
 }
 
-class _CancelSheet extends StatelessWidget {
+class _CancelSheet extends StatefulWidget {
   const _CancelSheet({required this.onKeep, required this.onCancel});
   final VoidCallback onKeep;
-  final VoidCallback onCancel;
+  final ValueChanged<String> onCancel;
+
+  @override
+  State<_CancelSheet> createState() => _CancelSheetState();
+}
+
+class _CancelSheetState extends State<_CancelSheet> {
+  String? _reason;
+  static const _reasons = [
+    'Driver taking too long',
+    'Wrong pickup or drop',
+    'Changed my mind',
+    'Price is high',
+    'Other',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -768,14 +764,24 @@ class _CancelSheet extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Nearby drivers will stop seeing this request.',
+              'Please select a reason to cancel.',
               style: AppTypography.textTheme.bodyMedium,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+            ..._reasons.map(
+              (r) => RadioListTile<String>(
+                dense: true,
+                value: r,
+                groupValue: _reason,
+                title: Text(r),
+                onChanged: (v) => setState(() => _reason = v),
+              ),
+            ),
+            const SizedBox(height: 8),
             SizedBox(
               height: 52,
               child: ElevatedButton(
-                onPressed: onKeep,
+                onPressed: widget.onKeep,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -791,9 +797,11 @@ class _CancelSheet extends StatelessWidget {
             SizedBox(
               height: 52,
               child: TextButton(
-                onPressed: onCancel,
+                onPressed: _reason == null
+                    ? null
+                    : () => widget.onCancel(_reason!),
                 child: Text(
-                  'Yes booking',
+                  'Yes, cancel booking',
                   style: AppTypography.textTheme.labelLarge?.copyWith(
                     color: AppColors.error,
                     fontWeight: FontWeight.w700,

@@ -3,7 +3,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class LocationService {
-  static const LatLng defaultNoida = LatLng(28.6200, 77.3650);
+  static const LatLng defaultJaipur = LatLng(26.9124, 75.7873);
+  static const LatLng defaultNoida = defaultJaipur;
   final Geocoding _geocoder = Geocoding();
 
   Future<bool> ensurePermission() async {
