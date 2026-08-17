@@ -85,16 +85,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           ListTile(
             title: Text(s.faqs),
-            onTap: () => context.push(
-              RoutePaths.legal,
-              extra: (
-                s.faqs,
-                s.t(
-                  'Login uses phone OTP 1234 while SMS is not configured. Search runs for 2 minutes.',
-                  'SMS बंद होने तक लॉगिन OTP 1234 है। ड्राइवर सर्च 2 मिनट चलती है।',
-                ),
-              ),
-            ),
+            onTap: () => context.push(RoutePaths.faqs),
           ),
           ListTile(
             title: Text(s.refund),

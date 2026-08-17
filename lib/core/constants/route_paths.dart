@@ -22,4 +22,5 @@ abstract final class RoutePaths {
   static const String settings = '/profile/settings';
   static const String about = '/profile/about';
   static const String legal = '/profile/legal';
+  static const String faqs = '/profile/faqs';
 }

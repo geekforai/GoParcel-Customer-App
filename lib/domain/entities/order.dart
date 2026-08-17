@@ -6,6 +6,15 @@ enum ParcelType { documents, electronics, food, clothes, others }
 
 enum WeightBand { upTo1, oneTo5, fiveTo10, tenPlus }
 
+/// Customer-facing fare vehicle categories (official rate card).
+enum FareVehicle {
+  twoWheeler,
+  mini3Wheeler,
+  threeWheeler,
+  tataAce,
+  pickup8ft,
+}
+
 enum OrderStatus {
   draft,
   searching,
@@ -128,6 +137,7 @@ class CustomerOrder extends Equatable {
     this.pickupId,
     this.electric = true,
     this.tip = 0,
+    this.fareVehicle = FareVehicle.twoWheeler,
   });
 
   final String id;
@@ -150,6 +160,7 @@ class CustomerOrder extends Equatable {
   final String? pickupId;
   final bool electric;
   final double tip;
+  final FareVehicle fareVehicle;
 
   /// True while a trip is not finished/cancelled — blocks a second booking.
   bool get isBlockingNewBooking => switch (status) {
@@ -204,6 +215,14 @@ class CustomerOrder extends Equatable {
         WeightBand.tenPlus => '10+ KG',
       };
 
+  String get fareVehicleLabel => switch (fareVehicle) {
+        FareVehicle.twoWheeler => '2-Wheeler / Bike',
+        FareVehicle.mini3Wheeler => 'Mini 3-Wheeler',
+        FareVehicle.threeWheeler => '3-Wheeler',
+        FareVehicle.tataAce => 'Tata Ace',
+        FareVehicle.pickup8ft => 'Pickup 8ft',
+      };
+
   CustomerOrder copyWith({
     OrderStatus? status,
     AssignedDriver? driver,
@@ -221,6 +240,7 @@ class CustomerOrder extends Equatable {
     String? pickupId,
     bool? electric,
     double? tip,
+    FareVehicle? fareVehicle,
   }) {
     return CustomerOrder(
       id: id,
@@ -242,6 +262,7 @@ class CustomerOrder extends Equatable {
       pickupId: pickupId ?? this.pickupId,
       electric: electric ?? this.electric,
       tip: tip ?? this.tip,
+      fareVehicle: fareVehicle ?? this.fareVehicle,
     );
   }
 
@@ -266,6 +287,7 @@ class CustomerOrder extends Equatable {
         pickupId,
         electric,
         tip,
+        fareVehicle,
       ];
 }
 

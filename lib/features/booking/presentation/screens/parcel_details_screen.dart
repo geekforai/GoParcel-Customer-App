@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/constants/route_paths.dart';
+import '../../../../core/content/goparcel_content.dart';
 import '../../../../core/locale/app_locale.dart';
 import '../../../../core/utils/fare_calculator.dart';
 import '../../../../core/utils/formatters.dart';
@@ -24,7 +25,9 @@ class ParcelDetailsScreen extends ConsumerStatefulWidget {
 class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
   ParcelType _type = ParcelType.documents;
   WeightBand _weight = WeightBand.oneTo5;
+  FareVehicle _vehicle = FareVehicle.twoWheeler;
   bool _electric = true;
+  bool _acceptedRules = false;
   double _tip = 0;
   final _instructions = TextEditingController();
   String? _photoPath;
@@ -46,6 +49,15 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
   }
 
   Future<void> _bookNow() async {
+    if (!_acceptedRules) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Please accept Read Before Booking to continue'),
+        ),
+      );
+      return;
+    }
     setState(() => _loading = true);
     final notifier = ref.read(bookingProvider.notifier);
     final saved = await notifier.saveParcel(
@@ -55,6 +67,7 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
       photoPath: _photoPath,
       electric: _electric,
       tip: _tip,
+      fareVehicle: _vehicle,
     );
     if (!saved) {
       if (mounted) {
@@ -131,13 +144,22 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
   Widget build(BuildContext context) {
     final s = ref.watch(l10nProvider);
     final order = ref.watch(bookingProvider).order;
+    final km = order == null
+        ? 0.0
+        : FareCalculator.haversineKm(order.pickup.point, order.drop.point);
+    final availableVehicles = FareVehicle.values
+        .where((v) => FareCalculator.isVehicleAvailable(v, km))
+        .toList();
+    if (!availableVehicles.contains(_vehicle) && availableVehicles.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _vehicle = availableVehicles.first);
+      });
+    }
     final fare = order == null
         ? null
-        : FareCalculator.estimate(
-            pickup: order.pickup,
-            drop: order.drop,
-            weight: _weight,
-            electric: _electric,
+        : FareCalculator.estimateForKm(
+            km: km,
+            vehicle: _vehicle,
             tip: _tip,
           );
 
@@ -154,6 +176,14 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
       (WeightBand.fiveTo10, '5–10 KG'),
       (WeightBand.tenPlus, '10+ KG'),
     ];
+
+    String vehicleLabel(FareVehicle v) => switch (v) {
+          FareVehicle.twoWheeler => '2-Wheeler / Bike',
+          FareVehicle.mini3Wheeler => 'Mini 3-Wheeler',
+          FareVehicle.threeWheeler => '3-Wheeler',
+          FareVehicle.tataAce => 'Tata Ace',
+          FareVehicle.pickup8ft => 'Pickup 8ft',
+        };
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
@@ -187,9 +217,22 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.border),
               ),
-              child: BookingRouteStrip(
-                pickup: order.pickup.address,
-                drop: order.drop.address,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  BookingRouteStrip(
+                    pickup: order.pickup.address,
+                    drop: order.drop.address,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Distance ≈ ${km.toStringAsFixed(1)} km',
+                    style: AppTypography.textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           const SizedBox(height: 14),
@@ -197,6 +240,35 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(
+                  'Select vehicle',
+                  style: AppTypography.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final v in availableVehicles)
+                      ChoiceChip(
+                        label: Text(vehicleLabel(v)),
+                        selected: _vehicle == v,
+                        onSelected: (_) => setState(() => _vehicle = v),
+                      ),
+                  ],
+                ),
+                if (km > 40) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Mini 3-Wheeler is not available above 40 km.',
+                    style: AppTypography.textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
                 Text(
                   s.vehicle,
                   style: AppTypography.textTheme.titleMedium?.copyWith(
@@ -334,6 +406,51 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
                           color: AppColors.textTertiary,
                         ),
                       ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SectionCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Read Before Booking',
+                  style: AppTypography.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                for (final rule in GoParcelContent.readBeforeBooking)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('•  ', style: TextStyle(fontWeight: FontWeight.w700)),
+                        Expanded(
+                          child: Text(
+                            rule,
+                            style: AppTypography.textTheme.bodyMedium,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 4),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _acceptedRules,
+                  onChanged: (v) =>
+                      setState(() => _acceptedRules = v ?? false),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text(
+                    'I have read and agree to these booking rules',
+                    style: AppTypography.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),

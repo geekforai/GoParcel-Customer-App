@@ -424,6 +424,7 @@ class ApiOrderRepository implements OrderRepository {
     String? photoPath,
     bool electric = true,
     double tip = 0,
+    FareVehicle fareVehicle = FareVehicle.twoWheeler,
   }) async {
     if (_active == null) return const FailureResult('No active booking');
     _active = _active!.copyWith(
@@ -433,9 +434,11 @@ class ApiOrderRepository implements OrderRepository {
       photoPath: photoPath,
       electric: electric,
       tip: tip,
+      fareVehicle: fareVehicle,
       fare: FareCalculator.estimate(
         pickup: _active!.pickup,
         drop: _active!.drop,
+        vehicle: fareVehicle,
         weight: weightBand,
         electric: electric,
         tip: tip,
@@ -492,6 +495,8 @@ class ApiOrderRepository implements OrderRepository {
           },
           'metadata': {
             'fare': _active!.fare.toString(),
+            'vehicleCategory': _active!.fareVehicle.name,
+            'vehicleLabel': _active!.fareVehicleLabel,
             'source': 'customer_app',
             'pickupLat': _active!.pickup.point.lat.toString(),
             'pickupLng': _active!.pickup.point.lng.toString(),

@@ -109,6 +109,7 @@ class MockOrderRepository implements OrderRepository {
       fare: FareCalculator.estimate(
         pickup: pickup,
         drop: drop,
+        vehicle: FareVehicle.twoWheeler,
         weight: WeightBand.oneTo5,
         electric: true,
       ),
@@ -128,6 +129,7 @@ class MockOrderRepository implements OrderRepository {
     String? photoPath,
     bool electric = true,
     double tip = 0,
+    FareVehicle fareVehicle = FareVehicle.twoWheeler,
   }) async {
     await Future<void>.delayed(AppConstants.mockNetworkDelay);
     if (_active == null) return const FailureResult('No active booking');
@@ -138,9 +140,11 @@ class MockOrderRepository implements OrderRepository {
       photoPath: photoPath,
       electric: electric,
       tip: tip,
+      fareVehicle: fareVehicle,
       fare: FareCalculator.estimate(
         pickup: _active!.pickup,
         drop: _active!.drop,
+        vehicle: fareVehicle,
         weight: weightBand,
         electric: electric,
         tip: tip,

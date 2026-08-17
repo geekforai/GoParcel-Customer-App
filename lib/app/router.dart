@@ -21,6 +21,7 @@ import '../features/notifications/presentation/screens/notifications_screen.dart
 import '../features/orders/presentation/screens/order_details_screen.dart';
 import '../features/orders/presentation/screens/orders_screen.dart';
 import '../features/profile/presentation/screens/about_screen.dart';
+import '../features/profile/presentation/screens/faq_screen.dart';
 import '../features/profile/presentation/screens/legal_page_screen.dart';
 import '../features/profile/presentation/screens/addresses_screen.dart';
 import '../features/profile/presentation/screens/payments_screen.dart';
@@ -180,6 +181,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: RoutePaths.about,
         builder: (context, state) => const AboutScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RoutePaths.faqs,
+        builder: (context, state) => const FaqScreen(),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

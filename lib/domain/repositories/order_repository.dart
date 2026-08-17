@@ -16,6 +16,7 @@ abstract class OrderRepository {
     String? photoPath,
     bool electric = true,
     double tip = 0,
+    FareVehicle fareVehicle = FareVehicle.twoWheeler,
   });
   Future<Result<CustomerOrder>> startDriverSearch(String orderId);
   Future<Result<CustomerOrder>> assignDriver(String orderId);
