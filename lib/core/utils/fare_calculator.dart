@@ -2,10 +2,237 @@ import 'dart:math';
 
 import '../../domain/entities/order.dart';
 
-/// Official GoParcel distance + vehicle fare card.
+/// Runtime fare rate card loaded from admin (`GET /shipment/fare-config`).
+class FareRateCard {
+  const FareRateCard({
+    required this.vehicles,
+    required this.slabs,
+    this.mini3WheelerMaxKm = 40,
+    this.version = 1,
+  });
+
+  final List<FareVehicleOption> vehicles;
+  final List<FareSlabConfig> slabs;
+  final double? mini3WheelerMaxKm;
+  final int version;
+
+  static FareRateCard get bundledFallback => FareRateCard(
+        version: 1,
+        mini3WheelerMaxKm: 40,
+        vehicles: const [
+          FareVehicleOption(id: 'twoWheeler', label: '2-Wheeler / Bike'),
+          FareVehicleOption(id: 'mini3Wheeler', label: 'Mini 3-Wheeler'),
+          FareVehicleOption(id: 'threeWheeler', label: '3-Wheeler'),
+          FareVehicleOption(id: 'tataAce', label: 'Tata Ace'),
+          FareVehicleOption(id: 'pickup8ft', label: 'Pickup 8ft'),
+        ],
+        slabs: _fallbackSlabs,
+      );
+
+  static FareRateCard fromJson(Map<String, dynamic> json) {
+    final vehiclesRaw = (json['vehicles'] as List?) ?? const [];
+    final slabsRaw = (json['slabs'] as List?) ?? const [];
+    final rules = (json['unavailableRules'] is Map)
+        ? Map<String, dynamic>.from(json['unavailableRules'] as Map)
+        : const <String, dynamic>{};
+    return FareRateCard(
+      version: int.tryParse('${json['version'] ?? 1}') ?? 1,
+      mini3WheelerMaxKm:
+          double.tryParse('${rules['mini3WheelerMaxKm'] ?? 40}'),
+      vehicles: [
+        for (final v in vehiclesRaw)
+          if (v is Map)
+            FareVehicleOption(
+              id: '${v['id']}',
+              label: '${v['label']}',
+            ),
+      ],
+      slabs: [
+        for (final s in slabsRaw)
+          if (s is Map) FareSlabConfig.fromJson(Map<String, dynamic>.from(s)),
+      ],
+    );
+  }
+}
+
+class FareVehicleOption {
+  const FareVehicleOption({required this.id, required this.label});
+  final String id;
+  final String label;
+}
+
+class FareSlabConfig {
+  const FareSlabConfig({
+    required this.id,
+    required this.label,
+    required this.minKm,
+    required this.maxKm,
+    required this.mode,
+    required this.rates,
+    this.note,
+  });
+
+  final String id;
+  final String label;
+  final double minKm;
+  final double? maxKm;
+  final String mode; // base | perKm
+  final Map<String, dynamic> rates;
+  final String? note;
+
+  factory FareSlabConfig.fromJson(Map<String, dynamic> json) {
+    return FareSlabConfig(
+      id: '${json['id']}',
+      label: '${json['label']}',
+      minKm: double.tryParse('${json['minKm'] ?? 0}') ?? 0,
+      maxKm: json['maxKm'] == null
+          ? null
+          : double.tryParse('${json['maxKm']}'),
+      mode: '${json['mode'] ?? 'perKm'}',
+      rates: Map<String, dynamic>.from((json['rates'] as Map?) ?? const {}),
+      note: json['note']?.toString(),
+    );
+  }
+}
+
+const _fallbackSlabs = <FareSlabConfig>[
+  FareSlabConfig(
+    id: '1_10',
+    label: '1–10 KM',
+    minKm: 0,
+    maxKm: 10,
+    mode: 'base',
+    rates: {
+      'twoWheeler': {'base': 39, 'after1Km': 11},
+      'mini3Wheeler': {'base': 109, 'after1Km': 16},
+      'threeWheeler': {'base': 139, 'after1Km': 18},
+      'tataAce': {'base': 179, 'after1Km': 45},
+      'pickup8ft': {'base': 299, 'after1Km': 50},
+    },
+  ),
+  FareSlabConfig(
+    id: '11_20',
+    label: '11–20 KM',
+    minKm: 10,
+    maxKm: 20,
+    mode: 'perKm',
+    rates: {
+      'twoWheeler': 8,
+      'mini3Wheeler': 12,
+      'threeWheeler': 27,
+      'tataAce': 31,
+      'pickup8ft': 36,
+    },
+  ),
+  FareSlabConfig(
+    id: '21_30',
+    label: '21–30 KM',
+    minKm: 20,
+    maxKm: 30,
+    mode: 'perKm',
+    rates: {
+      'twoWheeler': 7,
+      'mini3Wheeler': 9,
+      'threeWheeler': 26,
+      'tataAce': 33,
+      'pickup8ft': 37,
+    },
+  ),
+  FareSlabConfig(
+    id: '31_40',
+    label: '31–40 KM',
+    minKm: 30,
+    maxKm: 40,
+    mode: 'perKm',
+    rates: {
+      'twoWheeler': 7,
+      'mini3Wheeler': 9,
+      'threeWheeler': 25,
+      'tataAce': 28,
+      'pickup8ft': 35,
+    },
+  ),
+  FareSlabConfig(
+    id: '41_50',
+    label: '41–50 KM',
+    minKm: 40,
+    maxKm: 50,
+    mode: 'perKm',
+    rates: {
+      'twoWheeler': 8,
+      'threeWheeler': 27,
+      'tataAce': 33,
+      'pickup8ft': 38,
+    },
+  ),
+  FareSlabConfig(
+    id: '51_100',
+    label: '51–100 KM',
+    minKm: 50,
+    maxKm: 100,
+    mode: 'perKm',
+    rates: {
+      'twoWheeler': 9,
+      'threeWheeler': 25,
+      'tataAce': 34,
+      'pickup8ft': 39,
+    },
+  ),
+  FareSlabConfig(
+    id: '100_200',
+    label: '100+ KM (up to 200)',
+    minKm: 100,
+    maxKm: 200,
+    mode: 'perKm',
+    rates: {
+      'twoWheeler': 8.5,
+      'threeWheeler': 26,
+      'tataAce': 31,
+      'pickup8ft': 36.5,
+    },
+  ),
+  FareSlabConfig(
+    id: '200_plus',
+    label: '200+ KM',
+    minKm: 200,
+    maxKm: null,
+    mode: 'perKm',
+    rates: {
+      'twoWheeler': 8.5,
+      'threeWheeler': 29,
+      'tataAce': 33,
+      'pickup8ft': 38,
+    },
+  ),
+];
+
+/// Official GoParcel distance + vehicle fare card (admin-configurable).
 abstract final class FareCalculator {
-  static const freeLoadingMinutes = 50;
-  static const waitingChargePerMinute = 3.0;
+  static FareRateCard _card = FareRateCard.bundledFallback;
+
+  static FareRateCard get card => _card;
+
+  static void applyConfig(FareRateCard card) {
+    if (card.slabs.isEmpty) return;
+    _card = card;
+  }
+
+  static String vehicleId(FareVehicle vehicle) => switch (vehicle) {
+        FareVehicle.twoWheeler => 'twoWheeler',
+        FareVehicle.mini3Wheeler => 'mini3Wheeler',
+        FareVehicle.threeWheeler => 'threeWheeler',
+        FareVehicle.tataAce => 'tataAce',
+        FareVehicle.pickup8ft => 'pickup8ft',
+      };
+
+  static FareVehicle? vehicleFromId(String id) => switch (id) {
+        'twoWheeler' => FareVehicle.twoWheeler,
+        'mini3Wheeler' => FareVehicle.mini3Wheeler,
+        'threeWheeler' => FareVehicle.threeWheeler,
+        'tataAce' => FareVehicle.tataAce,
+        'pickup8ft' => FareVehicle.pickup8ft,
+        _ => null,
+      };
 
   static double haversineKm(GeoPoint a, GeoPoint b) {
     const earthKm = 6371.0;
@@ -19,11 +246,14 @@ abstract final class FareCalculator {
   }
 
   static bool isVehicleAvailable(FareVehicle vehicle, double km) {
-    if (vehicle == FareVehicle.mini3Wheeler && km > 40) return false;
-    return true;
+    if (vehicle == FareVehicle.mini3Wheeler) {
+      final maxKm = _card.mini3WheelerMaxKm;
+      if (maxKm != null && km > maxKm) return false;
+    }
+    final slab = _slabFor(km);
+    return slab.rates.containsKey(vehicleId(vehicle));
   }
 
-  /// Returns null when the vehicle is not offered for [km].
   static double? estimateForKm({
     required double km,
     required FareVehicle vehicle,
@@ -31,16 +261,20 @@ abstract final class FareCalculator {
   }) {
     if (!isVehicleAvailable(vehicle, km)) return null;
     final distance = km < 0 ? 0.0 : km;
-    final fare = switch (_slab(distance)) {
-      _FareSlab.upto10 => _baseFare(vehicle, distance),
-      _FareSlab.km11to20 => distance * _perKm(vehicle, _FareSlab.km11to20),
-      _FareSlab.km21to30 => distance * _perKm(vehicle, _FareSlab.km21to30),
-      _FareSlab.km31to40 => distance * _perKm(vehicle, _FareSlab.km31to40),
-      _FareSlab.km41to50 => distance * _perKm(vehicle, _FareSlab.km41to50),
-      _FareSlab.km51to100 => distance * _perKm(vehicle, _FareSlab.km51to100),
-      _FareSlab.km100to200 => distance * _perKm(vehicle, _FareSlab.km100to200),
-      _FareSlab.km200plus => distance * _perKm(vehicle, _FareSlab.km200plus),
-    };
+    final slab = _slabFor(distance);
+    final rate = slab.rates[vehicleId(vehicle)];
+    if (rate == null) return null;
+
+    double fare;
+    if (slab.mode == 'base' && rate is Map) {
+      final billed = distance < 1 ? 1.0 : distance;
+      final base = double.tryParse('${rate['base']}') ?? 0;
+      final after = double.tryParse('${rate['after1Km']}') ?? 0;
+      fare = base + max(0, billed - 1) * after;
+    } else {
+      final perKm = double.tryParse('$rate') ?? 0;
+      fare = distance * perKm;
+    }
     return (fare + tip).roundToDouble();
   }
 
@@ -59,76 +293,17 @@ abstract final class FareCalculator {
 
   static double gst(double fare) => (fare * 0.05 * 100).round() / 100;
 
-  static double _baseFare(FareVehicle vehicle, double km) {
-    final billed = km < 1 ? 1.0 : km;
-    final (base, after) = switch (vehicle) {
-      FareVehicle.twoWheeler => (39.0, 11.0),
-      FareVehicle.mini3Wheeler => (109.0, 16.0),
-      FareVehicle.threeWheeler => (139.0, 18.0),
-      FareVehicle.tataAce => (179.0, 45.0),
-      FareVehicle.pickup8ft => (299.0, 50.0),
-    };
-    return base + max(0, billed - 1) * after;
-  }
-
-  static double _perKm(FareVehicle vehicle, _FareSlab slab) {
-    return switch ((slab, vehicle)) {
-      (_FareSlab.km11to20, FareVehicle.twoWheeler) => 8,
-      (_FareSlab.km11to20, FareVehicle.mini3Wheeler) => 12,
-      (_FareSlab.km11to20, FareVehicle.threeWheeler) => 27,
-      (_FareSlab.km11to20, FareVehicle.tataAce) => 31,
-      (_FareSlab.km11to20, FareVehicle.pickup8ft) => 36,
-      (_FareSlab.km21to30, FareVehicle.twoWheeler) => 7,
-      (_FareSlab.km21to30, FareVehicle.mini3Wheeler) => 9,
-      (_FareSlab.km21to30, FareVehicle.threeWheeler) => 26,
-      (_FareSlab.km21to30, FareVehicle.tataAce) => 33,
-      (_FareSlab.km21to30, FareVehicle.pickup8ft) => 37,
-      (_FareSlab.km31to40, FareVehicle.twoWheeler) => 7,
-      (_FareSlab.km31to40, FareVehicle.mini3Wheeler) => 9,
-      (_FareSlab.km31to40, FareVehicle.threeWheeler) => 25,
-      (_FareSlab.km31to40, FareVehicle.tataAce) => 28,
-      (_FareSlab.km31to40, FareVehicle.pickup8ft) => 35,
-      (_FareSlab.km41to50, FareVehicle.twoWheeler) => 8,
-      (_FareSlab.km41to50, FareVehicle.threeWheeler) => 27,
-      (_FareSlab.km41to50, FareVehicle.tataAce) => 33,
-      (_FareSlab.km41to50, FareVehicle.pickup8ft) => 38,
-      (_FareSlab.km51to100, FareVehicle.twoWheeler) => 9,
-      (_FareSlab.km51to100, FareVehicle.threeWheeler) => 25,
-      (_FareSlab.km51to100, FareVehicle.tataAce) => 34,
-      (_FareSlab.km51to100, FareVehicle.pickup8ft) => 39,
-      (_FareSlab.km100to200, FareVehicle.twoWheeler) => 8.5,
-      (_FareSlab.km100to200, FareVehicle.threeWheeler) => 26,
-      (_FareSlab.km100to200, FareVehicle.tataAce) => 31,
-      (_FareSlab.km100to200, FareVehicle.pickup8ft) => 36.5,
-      (_FareSlab.km200plus, FareVehicle.twoWheeler) => 8.5,
-      (_FareSlab.km200plus, FareVehicle.threeWheeler) => 29,
-      (_FareSlab.km200plus, FareVehicle.tataAce) => 33,
-      (_FareSlab.km200plus, FareVehicle.pickup8ft) => 38,
-      _ => 0,
-    };
-  }
-
-  static _FareSlab _slab(double km) {
-    if (km <= 10) return _FareSlab.upto10;
-    if (km <= 20) return _FareSlab.km11to20;
-    if (km <= 30) return _FareSlab.km21to30;
-    if (km <= 40) return _FareSlab.km31to40;
-    if (km <= 50) return _FareSlab.km41to50;
-    if (km <= 100) return _FareSlab.km51to100;
-    if (km <= 200) return _FareSlab.km100to200;
-    return _FareSlab.km200plus;
+  static FareSlabConfig _slabFor(double km) {
+    for (final slab in _card.slabs) {
+      final max = slab.maxKm ?? double.infinity;
+      if (slab.minKm == 0) {
+        if (km <= max) return slab;
+      } else if (km > slab.minKm && km <= max) {
+        return slab;
+      }
+    }
+    return _card.slabs.last;
   }
 
   static double _rad(double deg) => deg * pi / 180;
-}
-
-enum _FareSlab {
-  upto10,
-  km11to20,
-  km21to30,
-  km31to40,
-  km41to50,
-  km51to100,
-  km100to200,
-  km200plus,
 }

@@ -8,6 +8,7 @@ import '../../../../app/theme/app_typography.dart';
 import '../../../../core/constants/route_paths.dart';
 import '../../../../core/content/goparcel_content.dart';
 import '../../../../core/locale/app_locale.dart';
+import '../../../../core/providers/fare_config_provider.dart';
 import '../../../../core/utils/fare_calculator.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../domain/entities/order.dart';
@@ -143,6 +144,7 @@ class _ParcelDetailsScreenState extends ConsumerState<ParcelDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(l10nProvider);
+    ref.watch(fareConfigProvider);
     final order = ref.watch(bookingProvider).order;
     final km = order == null
         ? 0.0
